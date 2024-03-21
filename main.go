@@ -103,6 +103,7 @@ var loglevel string
 var src []string
 var Logger *zap.Logger = logger()
 var festerizeVersion string = "0.4.2"
+var logFile string = "logs.log"
 
 // Sets up Cobra command line
 var rootCmd = &cobra.Command{
@@ -175,10 +176,28 @@ func ApplyExitOnHelp(c *cobra.Command, exitCode int) {
 	})
 }
 
-// logger creates logger
+// logger creates logger with output of info and debug to file and erro to stdout
 func logger() *zap.Logger {
-	logger := zap.Must(zap.NewDevelopment())
-	defer logger.Sync()
+	pe := zap.NewDevelopmentEncoderConfig()
+
+	fileEncoder := zapcore.NewJSONEncoder(pe)
+
+	pe.EncodeTime = zapcore.ISO8601TimeEncoder // The encoder can be customized for each output
+	consoleEncoder := zapcore.NewConsoleEncoder(pe)
+
+	// Create file core
+	file, err := os.Create(logFile)
+	if err != nil {
+		panic(err)
+	}
+	fileCore := zapcore.NewCore(fileEncoder, zapcore.AddSync(file), zap.DebugLevel)
+
+	// Create console core
+	consoleCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zap.ErrorLevel)
+
+	// Create a logger with two cores
+	logger := zap.New(zapcore.NewTee(fileCore, consoleCore), zap.AddCaller())
+
 	return logger
 }
 
@@ -303,7 +322,8 @@ func init() {
 func main() {
 	ApplyExitOnHelp(rootCmd, 0)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		Logger.Error("Error setting command line",
+			zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -359,10 +379,11 @@ func main() {
 				os.Exit(int(NONEXISTENT_FILE_SPECIFIED))
 			}
 		} else if strings.EqualFold(filepath.Ext(filename), ".csv") {
-			fmt.Printf("Uploading %s to %s\n", filename, postCSVUrl)
+			Logger.Info("Uploading file to Fester",
+				zap.String("filename", filename),
+				zap.String("post URL", postCSVUrl))
 			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if response.StatusCode == 201 {
-				fmt.Printf("%s was uploaded succesfully\n", filename)
 				Logger.Info("File was uploaded to Fester succesfully",
 					zap.String("filename", filename),
 				)
@@ -404,8 +425,9 @@ func main() {
 
 				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(responseBody)))
 				if err != nil {
-					fmt.Printf("Failed to parse HTML: %v\n", err)
-					return
+					Logger.Error("Failed to parse error HTML",
+						zap.Error(err))
+					continue
 				}
 
 				// Log error response
