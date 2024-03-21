@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -100,7 +101,10 @@ var metadata bool
 var strictMode bool
 var loglevel string
 var src []string
+var Logger *zap.Logger = logger()
+var festerizeVersion string = "0.4.2"
 
+// Sets up Cobra command line
 var rootCmd = &cobra.Command{
 	Use:   "festerize [flags] [src]",
 	Short: "A command-line tool for processing IIIF data.",
@@ -112,8 +116,28 @@ var rootCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		validateVersion()
-		validateLoglevel()
+		if err := ValidateVersion(); err != nil {
+			fmt.Println("IIIF API Version must be specified. Allowed values are 2 or 3")
+			fmt.Println(iiifApiHelp)
+			os.Exit(1)
+		}
+
+		if err := ValidateLoglevel(); err != nil {
+			fmt.Println("Invalid log level. Allowed values are INFO, DEBUG, or ERROR.")
+			os.Exit(1)
+		}
+		// Set loglevel for logger
+		switch loglevel {
+		case "INFO":
+			Logger = Logger.WithOptions(zap.IncreaseLevel(zapcore.InfoLevel))
+		case "DEBUG":
+			Logger = Logger.WithOptions(zap.IncreaseLevel(zapcore.DebugLevel))
+		case "ERROR":
+			Logger = Logger.WithOptions(zap.IncreaseLevel(zapcore.ErrorLevel))
+		default:
+			Logger = Logger.WithOptions(zap.IncreaseLevel(zapcore.InfoLevel))
+		}
+
 		if len(args) == 0 {
 			fmt.Println("Please provide one or more CSV files")
 			os.Exit(int(NO_FILES_SPECIFIED))
@@ -122,25 +146,27 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func validateLoglevel() {
+// ValidateLogLevel validates the log level
+func ValidateLoglevel() error {
 	switch loglevel {
 	case "INFO", "DEBUG", "ERROR":
+		return nil
 	default:
-		fmt.Println("Invalid log level. Allowed values are INFO, DEBUG, or ERROR.")
-		os.Exit(1)
+		return errors.New("invalid log level. Allowed values are INFO, DEBUG, or ERROR")
 	}
 }
 
-func validateVersion() {
+// ValidateVersion validates version number
+func ValidateVersion() error {
 	switch iiifApiVersion {
 	case "2", "3":
+		return nil
 	default:
-		fmt.Println("IIIF API Version must be specified. Allowed values are 2 or 3")
-		fmt.Println(iiifApiHelp)
-		os.Exit(1)
+		return errors.New("IIIF API Version must be specified. Allowed values are 2 or 3")
 	}
 }
 
+// ApplyExitOnHelp exits out of program if --help is flag
 func ApplyExitOnHelp(c *cobra.Command, exitCode int) {
 	helpFunc := c.HelpFunc()
 	c.SetHelpFunc(func(c *cobra.Command, s []string) {
@@ -149,25 +175,48 @@ func ApplyExitOnHelp(c *cobra.Command, exitCode int) {
 	})
 }
 
+// logger creates logger
 func logger() *zap.Logger {
-	logger := zap.Must(zap.NewProduction())
+	logger := zap.Must(zap.NewDevelopment())
 	defer logger.Sync()
-
-	// Set loglevel for logger
-	switch loglevel {
-	case "INFO":
-		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.InfoLevel))
-	case "DEBUG":
-		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.DebugLevel))
-	case "ERROR":
-		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.ErrorLevel))
-	default:
-		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.InfoLevel))
-	}
-
 	return logger
 }
 
+// CreateOuputDir creates output directory
+func CreateOutputDir() error {
+	if _, err := os.Stat(out); os.IsNotExist(err) {
+		fmt.Printf("Output directory %s not found, creating it.\n", out)
+		if err := os.MkdirAll(out, os.ModePerm); err != nil {
+			return errors.New("error creating output directory")
+		}
+	} else {
+		fmt.Printf("Output directory %s found, should we continue? YES might overwrite any existing output files. (yes/no): ", out)
+		var response string
+		fmt.Scanln(&response)
+		if response != "yes" {
+			return errors.New("aborted")
+		}
+	}
+	return nil
+}
+
+// FesterStatus checks Fester availability
+func FesterStatus(getStatusURL string) (int, error) {
+	// If Fester is unavailable, abort
+	resp, err := http.Get(getStatusURL)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, errors.New("error connecting to Fester: Unexpected status code")
+	} else {
+		return resp.StatusCode, nil
+	}
+}
+
+// uploadCSV uploads csv to Fester and returns respone
 func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 	metadataUpdate bool, headers map[string]string) (*http.Response, []byte, error) {
 	file, err := os.Open(filePath)
@@ -239,10 +288,11 @@ func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 	return response, responseBody, nil
 }
 
+// init initates flags
 func init() {
 	// Flags
 	rootCmd.Flags().StringVarP(&iiifApiVersion, "iiif-api-version", "v", "", iiifApiHelp)
-	rootCmd.Flags().StringVarP(&server, "server", "", "https://ingest.iiif.library.ucla.edu", "URL of the Fester service dedicated for ingest")
+	rootCmd.Flags().StringVarP(&server, "server", "", "https://test.ingest.iiif.library.ucla.edu", "URL of the Fester service dedicated for ingest")
 	rootCmd.Flags().StringVarP(&out, "out", "", "output", "Local directory to put the updated CSV")
 	rootCmd.Flags().StringVarP(&iiifhost, "iiifhost", "", "", "IIIF image server URL (optional)")
 	rootCmd.Flags().BoolVarP(&metadata, "metadata-update", "m", false, "Only update manifest (work) metadata; don't update canvases (pages).")
@@ -252,32 +302,16 @@ func init() {
 
 func main() {
 	ApplyExitOnHelp(rootCmd, 0)
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// Set up logger
-	logger := logger()
-
 	// Create output directory
-	if _, err := os.Stat(out); os.IsNotExist(err) {
-		fmt.Printf("Output directory %s not found, creating it.\n", out)
-		if err := os.MkdirAll(out, os.ModePerm); err != nil {
-			logger.Error("Error creating output directory",
-				zap.Error(err),
-			)
-			os.Exit(int(INVALID_OUTPUT_SPECIFIED))
-		}
-	} else {
-		fmt.Printf("Output directory %s found, should we continue? YES might overwrite any existing output files. (yes/no): ", out)
-		var response string
-		fmt.Scanln(&response)
-		if response != "yes" {
-			logger.Error("Aborted.")
-			os.Exit(0)
-		}
+	if err := CreateOutputDir(); err != nil {
+		Logger.Error("Error creating output directory",
+			zap.Error(err))
+		os.Exit(int(INVALID_OUTPUT_SPECIFIED))
 	}
 
 	// HTTP request URLs.
@@ -286,27 +320,24 @@ func main() {
 
 	// HTTP request headers
 	requestHeaders := map[string]string{
-		"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2"),
+		"User-Agent": fmt.Sprintf("%s/%s", "Festerize", festerizeVersion),
 	}
 
-	// If Fester is unavailable, abort
-	resp, err := http.Get(getStatusURL)
-	if err != nil {
-		logger.Error("Error making HTTP request to Fester",
-			zap.Error(err),
-		)
-		os.Exit(int(FESTER_UNAVAILABLE))
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("Error connecting to Fester: Unexpected status code",
-			zap.Int("status_code", resp.StatusCode),
-		)
+	// Check if Fester is available
+	if statusCode, err := FesterStatus(getStatusURL); err != nil {
+		if statusCode != 0 {
+			Logger.Error("Error connecting to Fester: Unexpected status code",
+				zap.Int("status_code", statusCode),
+			)
+		} else {
+			Logger.Error("Error making HTTP request to Fester",
+				zap.Error(err),
+			)
+		}
 		os.Exit(int(FESTER_UNAVAILABLE))
 	} else {
-		logger.Info("Got valid status code connected to Fester",
-			zap.Int("status_code", resp.StatusCode),
+		Logger.Info("Got valid status code connected to Fester",
+			zap.Int("status_code", statusCode),
 		)
 	}
 
@@ -319,7 +350,7 @@ func main() {
 		}
 
 		if _, err := os.Stat(absPath); os.IsNotExist(err) {
-			logger.Error("File does not exist",
+			Logger.Error("File does not exist",
 				zap.String("filename", filename),
 				zap.Error(err),
 			)
@@ -332,13 +363,16 @@ func main() {
 			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if response.StatusCode == 201 {
 				fmt.Printf("%s was uploaded succesfully\n", filename)
+				Logger.Info("File was uploaded to Fester succesfully",
+					zap.String("filename", filename),
+				)
 
 				// Save the result CSV to the output directory
 				csvPath := filepath.Join(out, filename)
 
 				file, err := os.Create(csvPath)
 				if err != nil {
-					logger.Error("Error creating file", zap.Error(err))
+					Logger.Error("Error creating file", zap.Error(err))
 					if strictMode {
 						os.Exit(int(FILE_IO_ERROR))
 					}
@@ -347,7 +381,7 @@ func main() {
 
 				_, err = file.Write(responseBody)
 				if err != nil {
-					logger.Error("Error writing to file", zap.Error(err))
+					Logger.Error("Error writing to file", zap.Error(err))
 					if strictMode {
 						os.Exit(int(FILE_IO_ERROR))
 					}
@@ -357,7 +391,7 @@ func main() {
 					// Create a string of emojis repeated
 					borderChar := extraSatisfaction[rand.Intn(len(extraSatisfaction))]
 					message := "SUCCESS! Uploaded " + filename
-					numSatisfaction := 18
+					numSatisfaction := len(message)/2 + 3
 					fmt.Println(strings.Repeat(borderChar, numSatisfaction))
 					fmt.Println(borderChar, message, borderChar)
 					fmt.Println(strings.Repeat(borderChar, numSatisfaction))
@@ -365,7 +399,7 @@ func main() {
 				}
 			} else {
 				if err != nil {
-					logger.Error("There was an error creating and posting the request: ", zap.Error(err))
+					Logger.Error("There was an error creating and posting the request: ", zap.Error(err))
 				}
 
 				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(responseBody)))
@@ -376,7 +410,7 @@ func main() {
 
 				// Log error response
 				errorCause := doc.Find("#error-message").Text()
-				logger.Error("Failed to upload file to Fester",
+				Logger.Error("Failed to upload file to Fester",
 					zap.String("filename", filename),
 					zap.String("error", errorCause))
 				if strictMode {
@@ -384,7 +418,7 @@ func main() {
 				}
 			}
 		} else {
-			logger.Error("This file is not a CSV file")
+			Logger.Error("This file is not a CSV file")
 			if strictMode {
 				os.Exit(int(NON_CSV_FILE_SPECIFIED))
 			}

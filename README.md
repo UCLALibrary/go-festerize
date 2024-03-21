@@ -26,7 +26,7 @@ Note that the order of operations is important. The following will result in an 
 
 First, ensure that you have Go Version 1.22 on you system. Clone this repository and run 
 
-`go build -o festerize main.go  `
+`go build -o festerize main.go`
 
 ## Usage
 
