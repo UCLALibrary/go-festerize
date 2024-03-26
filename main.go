@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
@@ -183,20 +182,17 @@ func logger() *zap.Logger {
 	fileEncoder := zapcore.NewJSONEncoder(pe)
 
 	pe.EncodeTime = zapcore.ISO8601TimeEncoder // The encoder can be customized for each output
-	consoleEncoder := zapcore.NewConsoleEncoder(pe)
 
 	// Create file core
 	file, err := os.Create(logFile)
 	if err != nil {
 		panic(err)
 	}
+
 	fileCore := zapcore.NewCore(fileEncoder, zapcore.AddSync(file), zap.DebugLevel)
 
-	// Create console core
-	consoleCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zap.ErrorLevel)
-
 	// Create a logger with two cores
-	logger := zap.New(zapcore.NewTee(fileCore, consoleCore), zap.AddCaller())
+	logger := zap.New(zapcore.NewTee(fileCore), zap.AddCaller())
 
 	return logger
 }
@@ -324,6 +320,7 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		Logger.Error("Error setting command line",
 			zap.Error(err))
+		fmt.Println("There was an error setting the command line")
 		os.Exit(1)
 	}
 
@@ -331,6 +328,7 @@ func main() {
 	if err := CreateOutputDir(); err != nil {
 		Logger.Error("Error creating output directory",
 			zap.Error(err))
+		fmt.Println("There was an error creating an output directory")
 		os.Exit(int(INVALID_OUTPUT_SPECIFIED))
 	}
 
@@ -354,6 +352,7 @@ func main() {
 				zap.Error(err),
 			)
 		}
+		fmt.Println("There was an error connecting to Fester")
 		os.Exit(int(FESTER_UNAVAILABLE))
 	} else {
 		Logger.Info("Got valid status code connected to Fester",
@@ -366,7 +365,13 @@ func main() {
 		absPath, err := filepath.Abs(pathString)
 		filename := filepath.Base(absPath)
 		if err != nil {
-			log.Fatal("Error getting absolute path", err)
+			Logger.Error("Error getting absolute path",
+				zap.Error(err))
+			fmt.Println("There was an error getting the absolute path of the CSV")
+			if strictMode {
+				os.Exit(int(FILE_IO_ERROR))
+			}
+			continue
 		}
 
 		if _, err := os.Stat(absPath); os.IsNotExist(err) {
@@ -374,7 +379,7 @@ func main() {
 				zap.String("filename", filename),
 				zap.Error(err),
 			)
-
+			fmt.Printf("%s does not exist\n", filename)
 			if strictMode {
 				os.Exit(int(NONEXISTENT_FILE_SPECIFIED))
 			}
@@ -394,18 +399,22 @@ func main() {
 				file, err := os.Create(csvPath)
 				if err != nil {
 					Logger.Error("Error creating file", zap.Error(err))
+					fmt.Printf("There was an error creating the festerized version of %s\n", filename)
 					if strictMode {
 						os.Exit(int(FILE_IO_ERROR))
 					}
+					continue
 				}
 				defer file.Close()
 
 				_, err = file.Write(responseBody)
 				if err != nil {
 					Logger.Error("Error writing to file", zap.Error(err))
+					fmt.Printf("There was an error writing to %s\n", filename)
 					if strictMode {
 						os.Exit(int(FILE_IO_ERROR))
 					}
+					continue
 				} else {
 					extraSatisfaction := []string{"🎉", "🎊", "✨", "💯", "😎", "✔️ ", "👍"} // Add more awesome characters if needed
 
@@ -421,6 +430,7 @@ func main() {
 			} else {
 				if err != nil {
 					Logger.Error("There was an error creating and posting the request: ", zap.Error(err))
+					fmt.Printf("There was an error creating and posting the request for %s\n", filename)
 				}
 
 				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(responseBody)))
@@ -429,7 +439,6 @@ func main() {
 						zap.Error(err))
 					continue
 				}
-
 				// Log error response
 				errorCause := doc.Find("#error-message").Text()
 				Logger.Error("Failed to upload file to Fester",
@@ -440,7 +449,9 @@ func main() {
 				}
 			}
 		} else {
-			Logger.Error("This file is not a CSV file")
+			Logger.Error("This file is not a CSV file",
+				zap.String("filename", filename))
+			fmt.Printf("%s is not a CSV", filename)
 			if strictMode {
 				os.Exit(int(NON_CSV_FILE_SPECIFIED))
 			}
