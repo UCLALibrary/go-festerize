@@ -20,11 +20,13 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
-        go-version: '1.22.1' 
-    
+        go-version: '1.22.1' # The Go version to download (if necessary) and use.
+    - name: Go fmt
+      run: go fmt ./...
     - name: Build and Run
       run: |
         go build -o festerize main.go
         ./festerize 
     - name: Test with the Go CLI
       run: go test
+      
