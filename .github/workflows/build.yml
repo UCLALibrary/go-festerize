@@ -14,11 +14,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
     
     # Setup Go
     - name: Setup Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
       with:
         go-version: '1.22.1' # The Go version to download (if necessary) and use.
     - name: Go fmt
