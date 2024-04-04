@@ -3,9 +3,6 @@ name: Build and Release Process
 on:
   release:
     types: [published]
-  pull_request:
-    branches:
-      - main
   
 
 jobs:
