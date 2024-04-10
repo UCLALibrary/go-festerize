@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+    
+    # Setup Go
+    - name: Setup Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+      with:
+        go-version: '1.22.1' # The Go version to download (if necessary) and use.
+    - name: Go fmt
+      run: go fmt ./...
+    - name: Build and Run
+      run: |
+        go build -o festerize main.go
+        ./festerize 
+    - name: Test with the Go CLI
+      run: go test
