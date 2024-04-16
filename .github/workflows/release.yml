@@ -1,0 +1,36 @@
+name: Build and Release Process
+
+on:
+  release:
+    types: [published]
+  
+
+jobs:
+  build_and_upload:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+    
+    # Setup Go
+    - name: Setup Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+      with:
+        go-version: '1.22.1' 
+    
+    - name: Build and Run
+      run: |
+        go build -o festerize main.go
+        ./festerize 
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./festerize 
+        asset_name: festerize  
+        asset_content_type: application/octet-stream 
