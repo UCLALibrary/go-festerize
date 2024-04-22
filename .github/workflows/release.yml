@@ -1,36 +1,88 @@
 name: Build and Release Process
 
+# Defines environmental variables
+env:
+  GO_VERSION: '1.22.2'
+
 on:
   release:
     types: [published]
   
 
 jobs:
-  build_and_upload:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  build_and_upload_ubuntu:
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     
     # Setup Go
     - name: Setup Go
-      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version: '1.22.1' 
+        go-version: "${{ env.GO_VERSION }}" 
     
     - name: Build and Run
       run: |
         go build -o festerize main.go
-        ./festerize 
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
-      env: 
+
+    # Zip binary for Ubuntu
+    - name: Zip binary
+      run: zip festerize_ubuntu.zip festerize
+
+    - name: Upload Ubunutu Release Assets
+      uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # v2.0.4
+      env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./festerize 
-        asset_name: festerize  
-        asset_content_type: application/octet-stream 
+        files: festerize_ubuntu.zip
+
+  build_and_upload_mac:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    
+    # Setup Go
+    - name: Setup Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        go-version: "${{ env.GO_VERSION }}" 
+    
+    - name: Build and Run
+      run: |
+        go build -o festerize main.go
+    # Zip binary for Mac
+    - name: Zip binary
+      run: zip festerize_mac.zip festerize 
+    - name: Upload Mac Release Assets
+      uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # v2.0.4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: festerize_mac.zip
+
+  build_and_upload_windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    
+    # Setup Go
+    - name: Setup Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        go-version: "${{ env.GO_VERSION }}"
+    
+    - name: Build and Run
+      run: |
+        go build -o festerize main.go
+      # Zip binary for Windoes
+    - name: Zip binary
+      run: Compress-Archive -Path festerize -DestinationPath festerize_windows.zip
+    - name: Upload Window Release Assets
+      uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # v2.0.4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: festerize_windows.zip
