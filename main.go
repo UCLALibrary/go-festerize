@@ -307,7 +307,7 @@ func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 func init() {
 	// Flags
 	rootCmd.Flags().StringVarP(&iiifApiVersion, "iiif-api-version", "v", "", iiifApiHelp)
-	rootCmd.Flags().StringVarP(&server, "server", "", "https://test.ingest.iiif.library.ucla.edu", "URL of the Fester service dedicated for ingest")
+	rootCmd.Flags().StringVarP(&server, "server", "", "https://ingest.iiif.library.ucla.edu", "URL of the Fester service dedicated for ingest")
 	rootCmd.Flags().StringVarP(&out, "out", "", "output", "Local directory to put the updated CSV")
 	rootCmd.Flags().StringVarP(&iiifhost, "iiifhost", "", "", "IIIF image server URL (optional)")
 	rootCmd.Flags().BoolVarP(&metadata, "metadata-update", "m", false, "Only update manifest (work) metadata; don't update canvases (pages).")
@@ -451,7 +451,7 @@ func main() {
 		} else {
 			Logger.Error("This file is not a CSV file",
 				zap.String("filename", filename))
-			fmt.Printf("%s is not a CSV", filename)
+			fmt.Printf("%s is not a CSV \n", filename)
 			if strictMode {
 				os.Exit(int(NON_CSV_FILE_SPECIFIED))
 			}

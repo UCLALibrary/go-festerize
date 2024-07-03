@@ -106,10 +106,36 @@ Flags:
                                   files on the command line (if any) will remain unprocessed.
 ```
 
-The SRC argument supports standard [filename globbing](https://en.wikipedia.org/wiki/Glob_(programming)) rules. In other words, `*.csv` is a valid entry for the SRC argument.
+Below is a table which lists whether the flag is necessary or optional and what the default values are set to. 
 
-Festerize will ignore any files that do not end with `.csv`, so a command of `festerize *.*` should be safe to run. Festerize does not recursively search folders.
+| Long Flag         | Short Flag    | Default                                      | Optional   |
+| ----------------- |-------------- | -------------------------------------------- |----------- |
+| --iiif-api-version| -v            | N/A                                          | No         |
+| --iiifhost        | N/A           | N/A                                          | Yes        |
+| --loglevel        | N/A           | INFO                                         | No         |
+| --metadata-update | -m            | false                                        | No         |
+| --out             | N/A           | output                                       | No         |
+| --server          | N/A           | https://ingest.iiif.library.ucla.edu         | No         |
+| --strict-mode     | N/A           | false                                        | No         |
 
-Festerize creates a folder (by default called `./output`) for all output. CSVs returned by the Fester service are stored there, with the same name as the SRC file.
+For all flags that have a default value, the flag is not necessary unless you want to change the default value. Either the long or short flag can be used in the command. The only flag that absolutely needs to be set is the `--iiif-api-version`. The available versions are 2 or 3. 
 
+Festerize creates a folder (by default called `output`) for all output. CSVs returned by the Fester service are stored there, with the same name as the SRC file. 
+
+The SRC argument supports standard [filename globbing](https://en.wikipedia.org/wiki/Glob_(programming)) rules. In other words, `*.csv` is a valid entry for the SRC argument. Festerize will ignore any files that do not end with `.csv`, so a command of `festerize *.*` should be safe to run. Festerize does not recursively search folders. 
+
+The command must be run in the folder where the executable exists. Therefore, all SRC folders and files should be specified relative to the current folder.
+
+## Example Cases
+Version 2 is set and `ballin.csv` is processed
+    
+    ./festerize -v 2 ballin.csv
+
+Version 2 is set, the new output is a folder called `testOutput`, and all `.csv` files in the folder un-festerized are processed
+    
+    ./festerize test/test-resources/un-festerized/*.csv -v 2 --output testOutput
+
+Version 3 is set, only manifest metadata is updated, and all `.csv` files in the folder un-festerized are processed
+
+    ./festerize -v 3 -m true test/test-resources/un-festerized/*.csv
 
