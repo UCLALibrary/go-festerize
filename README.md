@@ -115,7 +115,7 @@ Below is a table which lists whether the flag is necessary or optional and what 
 | --loglevel        | N/A           | INFO                                         | No         |
 | --metadata-update | -m            | false                                        | No         |
 | --out             | N/A           | output                                       | No         |
-| --server          | N/A           | https://ingest.iiif.library.ucla.edu         | No         |
+| --server          | N/A           | <https://ingest.iiif.library.ucla.edu>       | No         |
 | --strict-mode     | N/A           | false                                        | No         |
 
 For all flags that have a default value, the flag is not necessary unless you want to change the default value. Either the long or short flag can be used in the command. The only flag that absolutely needs to be set is the `--iiif-api-version`. The available versions are 2 or 3. 
@@ -127,6 +127,7 @@ The SRC argument supports standard [filename globbing](https://en.wikipedia.org/
 The command must be run in the folder where the executable exists. Therefore, all SRC folders and files should be specified relative to the current folder.
 
 ## Example Cases
+
 Version 2 is set and `ballin.csv` is processed
     
     ./festerize -v 2 ballin.csv
