@@ -14,4 +14,4 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run Codacy Analysis CLI
-        uses: codacy/codacy-analysis-cli-action@3ff8e64eb4b714c4bee91b7b4eea31c6fc2c4f93 # v4.4.1
+        uses: codacy/codacy-analysis-cli-action@97bf5df3c09e75f5bcd72695998f96ebd701846e # v4.4.5
