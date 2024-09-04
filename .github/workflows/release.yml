@@ -6,8 +6,7 @@ env:
 
 on:
   release:
-    types: [published]
-  
+    types: [ published ]
 
 jobs:
   build_and_upload_ubuntu:
@@ -15,13 +14,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-    
+
     # Setup Go
     - name: Setup Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
-        go-version: "${{ env.GO_VERSION }}" 
-    
+        go-version: "${{ env.GO_VERSION }}"
+
     - name: Build and Run
       run: |
         go build -o festerize main.go
@@ -42,19 +41,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-    
+
     # Setup Go
     - name: Setup Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
-        go-version: "${{ env.GO_VERSION }}" 
-    
+        go-version: "${{ env.GO_VERSION }}"
+
     - name: Build and Run
       run: |
         go build -o festerize main.go
+
     # Zip binary for Mac
     - name: Zip binary
-      run: zip festerize_mac.zip festerize 
+      run: zip festerize_mac.zip festerize
     - name: Upload Mac Release Assets
       uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
       env:
@@ -62,22 +62,49 @@ jobs:
       with:
         files: festerize_mac.zip
 
-  build_and_upload_windows:
-    runs-on: windows-latest
+  build_and_upload_mac_intel:
+    runs-on: macos-12
 
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-    
+
     # Setup Go
     - name: Setup Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
         go-version: "${{ env.GO_VERSION }}"
-    
+
     - name: Build and Run
       run: |
         go build -o festerize main.go
-      # Zip binary for Windoes
+
+    # Zip binary for Mac
+    - name: Zip binary
+      run: zip festerize_mac.zip festerize
+    - name: Upload Mac Release Assets
+      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: festerize_mac_intel.zip
+
+  build_and_upload_windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    # Setup Go
+    - name: Setup Go
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: "${{ env.GO_VERSION }}"
+
+    - name: Build and Run
+      run: |
+        go build -o festerize main.go
+
+    # Zip binary for Windoes
     - name: Zip binary
       run: Compress-Archive -Path festerize -DestinationPath festerize_windows.zip
     - name: Upload Window Release Assets
