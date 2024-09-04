@@ -80,7 +80,7 @@ jobs:
 
     # Zip binary for Mac
     - name: Zip binary
-      run: zip festerize_mac.zip festerize
+      run: zip festerize_mac_intel.zip festerize
     - name: Upload Mac Release Assets
       uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
       env:
