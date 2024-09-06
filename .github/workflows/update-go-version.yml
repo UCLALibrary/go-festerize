@@ -85,6 +85,9 @@ jobs:
   
       - name: Create pull request
         if: ${{ steps.check-update.outputs.update_needed == 'true' && steps.check-branch.outputs.branch_not_exist == 'true'}}
-        run: gh pr create -B main -H ${{ steps.update-go-mod.outputs.branch }} --title "Update Go version to ${{ steps.get-latest-go.outputs.latest_go_version }}" --body "This PR updates the Go version in the go.mod file to the latest available version."
+        run: |
+          gh pr create -B main -H ${{ steps.update-go-mod.outputs.branch }} \
+            --title "Update Go version to ${{ steps.get-latest-go.outputs.latest_go_version }}" \
+            --body "This PR updates the Go version in the go.mod file to the latest available version."        
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
