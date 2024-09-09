@@ -1,0 +1,93 @@
+name: Update Go Version
+
+on:
+  schedule:
+    # Runs every day at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allows manual triggering of the workflow
+
+jobs:
+  update-go-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Import bot's GPG key for signing commits
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
+        with:
+          gpg_private_key: ${{ secrets.BUILD_KEY }}
+          passphrase: ${{ secrets.BUILD_PASSPHRASE }}
+          git_config_global: true
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Set up Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: '1.x'
+
+      - name: Get latest Go version
+        id: get-latest-go
+        run: |
+          latest_go_version=$(curl -s https://go.dev/VERSION?m=text)
+          latest_go_version=${latest_go_version#go}  # Strip the 'go' prefix
+          echo "Latest Go version: $latest_go_version"
+          echo "::set-output name=latest_go_version::$latest_go_version"
+
+      - name: Get current Go version from go.mod
+        id: get-current-go
+        run: |
+          current_go_version=$(go mod edit -json | jq -r '.Go')
+          echo "Current Go version: $current_go_version"
+          echo "::set-output name=current_go_version::$current_go_version"
+
+      - name: Check if branch exists on remote
+        id: check-branch
+        run: |
+          branch_name=update-go-version-${{ steps.get-latest-go.outputs.latest_go_version }}
+            if git ls-remote --exit-code --heads origin $branch_name; then
+              echo "Branch $branch_name already exists on the remote."
+              echo "::set-output name=branch_not_exist::false"
+            else
+              echo "::set-output name=branch_not_exist::true"
+            fi
+
+      - name: Check if Go version needs update
+        id: check-update
+        run: |
+            if [ "${{ steps.get-latest-go.outputs.latest_go_version }}" != "${{ steps.get-current-go.outputs.current_go_version }}" ]; then
+              echo "::set-output name=update_needed::true"
+            else
+              echo "::set-output name=update_needed::false"
+            fi
+
+      - name: Update go.mod with latest Go version
+        id: update-go-mod
+        if: ${{ steps.check-update.outputs.update_needed == 'true' && steps.check-branch.outputs.branch_not_exist == 'true'}}
+        run: |
+          latest_go_version=${{ steps.get-latest-go.outputs.latest_go_version }}
+          echo "Updating go.mod to use Go version: $latest_go_version"
+          go mod edit -go=$latest_go_version
+          go mod tidy
+          branch_name=update-go-version-$latest_go_version
+          git checkout -b $branch_name
+          git add go.mod go.sum
+          git commit -S -m "Update Go version to $latest_go_version"
+          git push --set-upstream origin $branch_name
+          echo "::set-output name=branch::$branch_name"
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+  
+      - name: Create pull request
+        if: ${{ steps.check-update.outputs.update_needed == 'true' && steps.check-branch.outputs.branch_not_exist == 'true'}}
+        run: |
+          gh pr create -B main -H ${{ steps.update-go-mod.outputs.branch }} \
+            --title "Update Go version to ${{ steps.get-latest-go.outputs.latest_go_version }}" \
+            --body "This PR updates the Go version in the go.mod file to the latest available version."        
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
