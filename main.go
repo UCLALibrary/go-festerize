@@ -387,14 +387,16 @@ func main() {
 				os.Exit(int(NONEXISTENT_FILE_SPECIFIED))
 			}
 		} else if strings.EqualFold(filepath.Ext(filename), ".csv") {
+			var uploadUrl string
+			if (thumbnail) {
+				uploadUrl = postThumbUrl
+			} else {
+				uploadUrl = postCSVUrl
+			}
 			Logger.Info("Uploading file to Fester",
 				zap.String("filename", filename),
-				zap.String("post URL", postCSVUrl))
-                        if (thumbnail) {
-			        response, responseBody, err := uploadCSV(absPath, postThumbUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
-			} else {
-			        response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
-		        }
+				zap.String("post URL", uploadUrl))
+			response, responseBody, err := uploadCSV(absPath, uploadUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if response.StatusCode == 201 {
 				Logger.Info("File was uploaded to Fester succesfully",
 					zap.String("filename", filename),
