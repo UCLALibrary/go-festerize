@@ -29,3 +29,5 @@ festerize
 
 # Output directory for results 
 /output
+
+dist/

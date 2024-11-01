@@ -1,115 +1,30 @@
-name: Build and Release Process
-
-# Defines environmental variables
-env:
-  GO_VERSION: '1.22.2'
+name: goreleaser
 
 on:
   release:
     types: [ published ]
 
+permissions:
+  contents: write
+
 jobs:
-  build_and_upload_ubuntu:
+  goreleaser:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-    # Setup Go
-    - name: Setup Go
-      uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-      with:
-        go-version: "${{ env.GO_VERSION }}"
-
-    - name: Build and Run
-      run: |
-        go build -o festerize main.go
-
-    # Zip binary for Ubuntu
-    - name: Zip binary
-      run: zip festerize_ubuntu.zip festerize
-
-    - name: Upload Ubunutu Release Assets
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: festerize_ubuntu.zip
-
-  build_and_upload_mac:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-    # Setup Go
-    - name: Setup Go
-      uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-      with:
-        go-version: "${{ env.GO_VERSION }}"
-
-    - name: Build and Run
-      run: |
-        go build -o festerize main.go
-
-    # Zip binary for Mac
-    - name: Zip binary
-      run: zip festerize_mac.zip festerize
-    - name: Upload Mac Release Assets
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: festerize_mac.zip
-
-  build_and_upload_mac_intel:
-    runs-on: macos-12
-
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-    # Setup Go
-    - name: Setup Go
-      uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-      with:
-        go-version: "${{ env.GO_VERSION }}"
-
-    - name: Build and Run
-      run: |
-        go build -o festerize main.go
-
-    # Zip binary for Mac
-    - name: Zip binary
-      run: zip festerize_mac_intel.zip festerize
-    - name: Upload Mac Release Assets
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: festerize_mac_intel.zip
-
-  build_and_upload_windows:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-    # Setup Go
-    - name: Setup Go
-      uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-      with:
-        go-version: "${{ env.GO_VERSION }}"
-
-    - name: Build and Run
-      run: |
-        go build -o festerize main.go
-
-    # Zip binary for Windoes
-    - name: Zip binary
-      run: Compress-Archive -Path festerize -DestinationPath festerize_windows.zip
-    - name: Upload Window Release Assets
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: festerize_windows.zip
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      -
+        name: Set up Go
+        uses: actions/setup-go@v5
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
