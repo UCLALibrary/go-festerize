@@ -31,6 +31,7 @@ brews:
   - repository:
       owner: UCLALibrary
       name: homebrew-festerize
+      token: "{{ .Env.PERSONAL_ACCESS_TOKEN }}"
     description: "Uploads CSV files to the Fester IIIF manifest service for processing"
     name: "festerize"
     homepage: "https://github.com/UCLALibrary/go-festerize"
