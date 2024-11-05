@@ -1,8 +1,11 @@
-name: goreleaser
+name: Release Festerize
 
 on:
   release:
     types: [ published ]
+  push:
+    branches:
+      - SERV-1172
 
 permissions:
   contents: write
