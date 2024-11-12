@@ -24,6 +24,7 @@ var userInputMutex sync.Mutex
 var TestOutputDir string = "test/test-resources/test_output_dir"
 var TestDirUnFester string = "test/test-resources/un-festerized"
 var TestDirFester string = "test/test-resources/festerized"
+var TestDirThumb string = "test/test-resources/thumbnails"
 
 // MemorySink implements zap.Sink by writing all messages to a buffer.
 type MemorySink struct {

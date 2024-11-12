@@ -396,7 +396,7 @@ func main() {
 			Logger.Info("Uploading file to Fester",
 				zap.String("filename", filename),
 				zap.String("post URL", uploadUrl))
-			Logger.Info("Response code : ", zap.Int("statusCode", response.StatusCode));
+			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if response.StatusCode == 201 || response.StatusCode == 200 {
 				Logger.Info("File was uploaded to Fester succesfully",
 					zap.String("filename", filename),
