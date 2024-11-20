@@ -24,9 +24,25 @@ Note that the order of operations is important. The following will result in an 
 
 ## Installation
 
-First, ensure that you have Go Version 1.22 on you system. Clone this repository and run 
+### Build from Source
 
-`go build -o festerize main.go`
+First, ensure that you have the latest Go version on your system. Clone this repository and run 
+
+    go build -o festerize main.go
+
+### Build with Homebrew
+
+Begin by tapping into our homebrew-festerize respository
+
+    brew tap UCLALibrary/homebrew-festerize
+
+Next, you'll need to install `festerize` on your system. Please ensure that there are no other programs named `festerize` installed, as this could lead to conflicts.
+
+    brew install festerize
+
+Festerize will now be installed and can be run with 
+    
+    festerize 
 
 ## Usage
 
