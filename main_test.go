@@ -24,6 +24,7 @@ var userInputMutex sync.Mutex
 var TestOutputDir string = "test/test-resources/test_output_dir"
 var TestDirUnFester string = "test/test-resources/un-festerized"
 var TestDirFester string = "test/test-resources/festerized"
+var TestDirThumb string = "test/test-resources/thumbnails"
 
 // MemorySink implements zap.Sink by writing all messages to a buffer.
 type MemorySink struct {
@@ -94,7 +95,7 @@ func redirectStdoutToBuffer(t *testing.T) *bytes.Buffer {
 }
 
 // compareCSVs compares two CSV files and returns true if they are identical, false otherwise.
-func compareCSVs(file1, file2 string) (bool, error) {
+func compareCSVs(file1, file2 string, fullCompare bool) (bool, error) {
 	// Open the first CSV file
 	f1, err := os.Open(file1)
 	if err != nil {
@@ -131,10 +132,12 @@ func compareCSVs(file1, file2 string) (bool, error) {
 			return false, nil // Files have different structure
 		}
 
-		// Compare each column
-		for i := range row1 {
-			if row1[i] != row2[i] {
-				return false, nil // Files have different content
+		if fullCompare {
+			// Compare each column
+			for i := range row1 {
+				if row1[i] != row2[i] {
+					return false, nil // Files have different content
+				}
 			}
 		}
 	}
@@ -363,7 +366,7 @@ func TestUploadCSV(t *testing.T) {
 
 				_, _ = file.Write(responseBody)
 				filePath = testDirFester + tc.fileName
-				match, err := compareCSVs(festerizedPath, filePath)
+				match, err := compareCSVs(festerizedPath, filePath, true)
 				if err != nil {
 					fmt.Println("Error:", err)
 					return
@@ -372,6 +375,94 @@ func TestUploadCSV(t *testing.T) {
 				if !match {
 					fmt.Println("Files match.")
 					t.Errorf("Festerized CSV did not contain expected values")
+				}
+			}
+		})
+	}
+}
+
+// TestThumbnailCSV tests if a CSV is properly updated with default thumbnail otherwise an error should be thrown
+func TestThumbnailCSV(t *testing.T) {
+	// Valid File
+	testDirectory := "test/test-resources"
+	testDirUnThumb := "test/test-resources/unthumbed/"
+	testDirThumbed := "test/test-resources/thumbed/"
+
+	tests := []struct {
+		fileName               string
+		verifiedFesterizedpath string
+		postURL                string
+		iiifAPIVersion         string
+		iiifHost               string
+		metadataUpdate         bool
+		headers                map[string]string
+		expectedError          error
+		expStatusCode          int
+	}{
+		{
+			fileName:       "aidsposters_works_complex.csv",
+			postURL:        "https://test.ingest.iiif.library.ucla.edu/thumbnails",
+			iiifAPIVersion: "3",
+			iiifHost:       "",
+			metadataUpdate: false,
+			headers: map[string]string{
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+			expectedError: nil,
+			expStatusCode: 200,
+		},
+		{
+			fileName:       "aldine_work.csv",
+			postURL:        "https://test.ingest.iiif.library.ucla.edu/thumbnails",
+			iiifAPIVersion: "3",
+			iiifHost:       "",
+			metadataUpdate: false,
+			headers: map[string]string{
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+			expectedError: nil,
+			expStatusCode: 200,
+		},
+		{
+			fileName:       "canonlaw_works.csv",
+			postURL:        "https://test.ingest.iiif.library.ucla.edu/thumbnails",
+			iiifAPIVersion: "3",
+			iiifHost:       "",
+			metadataUpdate: false,
+			headers: map[string]string{
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+			expectedError: nil,
+			expStatusCode: 200,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.fileName, func(t *testing.T) {
+			filePath := testDirUnThumb + tc.fileName
+			response, responseBody, err := uploadCSV(filePath, tc.postURL, tc.iiifAPIVersion, tc.iiifHost,
+				tc.metadataUpdate, tc.headers)
+			assert.Equal(t, err, nil)
+			assert.Equal(t, response.StatusCode, tc.expStatusCode)
+			if response.StatusCode == 200 {
+				tempDir, err := os.MkdirTemp(testDirectory, "temporary-")
+				if err != nil {
+					fmt.Println("Error creating temporary directory:", err)
+					return
+				}
+				defer os.RemoveAll(tempDir) // Clean up the temporary directory when done
+				thumbedPath := filepath.Join(tempDir, tc.fileName)
+				file, _ := os.Create(thumbedPath)
+				defer file.Close()
+
+				_, _ = file.Write(responseBody)
+				filePath = testDirThumbed + tc.fileName
+				match, err := compareCSVs(thumbedPath, filePath, false)
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				if !match {
+					fmt.Println("Files match.")
+					t.Errorf("Thumbnailed CSV did not contain expected values")
 				}
 			}
 		})
@@ -401,7 +492,7 @@ func TestMainValid(t *testing.T) {
 		t.Error("File should have been uploaded to Fester succesfully but an error occured")
 	}
 
-	match, err := compareCSVs(TestOutputDir+"output"+testCSV, TestDirFester+testCSV)
+	match, err := compareCSVs(TestOutputDir+"output"+testCSV, TestDirFester+testCSV, true)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
