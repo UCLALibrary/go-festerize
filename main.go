@@ -97,6 +97,7 @@ var server string
 var out string
 var iiifhost string
 var metadata bool
+var thumbnail bool
 var strictMode bool
 var loglevel string
 var src []string
@@ -289,7 +290,7 @@ func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, nil, err
+		return response, nil, err
 	}
 
 	// Create a copy of the response body
@@ -311,6 +312,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&out, "out", "", "output", "Local directory to put the updated CSV")
 	rootCmd.Flags().StringVarP(&iiifhost, "iiifhost", "", "", "IIIF image server URL (optional)")
 	rootCmd.Flags().BoolVarP(&metadata, "metadata-update", "m", false, "Only update manifest (work) metadata; don't update canvases (pages).")
+	rootCmd.Flags().BoolVarP(&thumbnail, "thumbnails", "t", false, "Add a thumbnail to each work in a collection")
 	rootCmd.Flags().BoolVarP(&strictMode, "strict-mode", "", false, strictModeHelp)
 	rootCmd.Flags().StringVarP(&loglevel, "loglevel", "", "INFO", "Log level (INFO, DEBUG, ERROR)")
 }
@@ -335,6 +337,7 @@ func main() {
 	// HTTP request URLs.
 	getStatusURL := server + "/fester/status"
 	postCSVUrl := server + "/collections"
+	postThumbUrl := server + "/thumbnails"
 
 	// HTTP request headers
 	requestHeaders := map[string]string{
@@ -384,11 +387,17 @@ func main() {
 				os.Exit(int(NONEXISTENT_FILE_SPECIFIED))
 			}
 		} else if strings.EqualFold(filepath.Ext(filename), ".csv") {
+			var uploadUrl string
+			if (thumbnail) {
+				uploadUrl = postThumbUrl
+			} else {
+				uploadUrl = postCSVUrl
+			}
 			Logger.Info("Uploading file to Fester",
 				zap.String("filename", filename),
-				zap.String("post URL", postCSVUrl))
-			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
-			if response.StatusCode == 201 {
+				zap.String("post URL", uploadUrl))
+			response, responseBody, err := uploadCSV(absPath, uploadUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
+			if response.StatusCode == 201 || response.StatusCode == 200 {
 				Logger.Info("File was uploaded to Fester succesfully",
 					zap.String("filename", filename),
 				)
@@ -444,6 +453,8 @@ func main() {
 				Logger.Error("Failed to upload file to Fester",
 					zap.String("filename", filename),
 					zap.String("error", errorCause))
+				Logger.Error("Failed to upload file to Fester; response code = ",
+					zap.Int("status_code", response.StatusCode))
 				if strictMode {
 					os.Exit(int(FESTER_ERROR_RESPONSE))
 				}
