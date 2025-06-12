@@ -56,14 +56,31 @@ jobs:
               echo "::set-output name=branch_not_exist::true"
             fi
 
-      - name: Check if Go version needs update
+      - name: Get Go version from Dockerfile
+        id: get-dockerfile-go-version
+        run: |
+          dockerfile_go_version=$(grep -oP '^FROM golang:\K[0-9]+\.[0-9]+\.[0-9]+(?=-alpine)' Dockerfile)
+          echo "Go version in Dockerfile: $dockerfile_go_version"
+          echo "::set-output name=dockerfile_go_version::$dockerfile_go_version"
+
+      - name: Check if Go version needs update and Dockerfile is up to date
         id: check-update
         run: |
-            if [ "${{ steps.get-latest-go.outputs.latest_go_version }}" != "${{ steps.get-current-go.outputs.current_go_version }}" ]; then
-              echo "::set-output name=update_needed::true"
-            else
-              echo "::set-output name=update_needed::false"
-            fi
+          latest="${{ steps.get-latest-go.outputs.latest_go_version }}"
+          current="${{ steps.get-current-go.outputs.current_go_version }}"
+          dockerfile="${{ steps.get-dockerfile-go-version.outputs.dockerfile_go_version }}"
+          
+          if [ "$latest" = "$current" ]; then
+            echo "Go mod is already up-to-date."
+            echo "::set-output name=update_needed::false"
+          elif [ "$latest" != "$dockerfile" ]; then
+            echo "Dockerfile has not yet been updated to Go $latest — skipping update."
+            echo "::set-output name=update_needed::false"
+          else
+            echo "Go mod needs update and Dockerfile is ready."
+            echo "::set-output name=update_needed::true"
+          fi
+    
 
       - name: Update go.mod with latest Go version
         id: update-go-mod
@@ -82,7 +99,7 @@ jobs:
 
       - name: Install GitHub CLI
         run: sudo apt-get install gh
-  
+
       - name: Create pull request
         if: ${{ steps.check-update.outputs.update_needed == 'true' && steps.check-branch.outputs.branch_not_exist == 'true'}}
         run: |
