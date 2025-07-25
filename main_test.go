@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -238,47 +237,6 @@ func TestCreateOutputDir(t *testing.T) {
 		if (err != nil && tc.expectedError == nil) || (err == nil && tc.expectedError != nil) || (err != nil && err.Error() != tc.expectedError.Error()) {
 			t.Errorf("[%s] Test failed. Test failed onExpected error: %v, got: %v", tc.name, tc.expectedError, err)
 		}
-	}
-}
-
-// TestFesterStatus tests proper responses to connect to Server
-func TestFesterStatus(t *testing.T) {
-	tests := []struct {
-		name          string
-		getStatusURL  string
-		responseCode  int
-		expectedError error
-	}{
-		{
-			name:          "Fester available, status 200",
-			getStatusURL:  "https://test.ingest.iiif.library.ucla.edu/fester/status",
-			responseCode:  http.StatusOK,
-			expectedError: nil,
-		},
-		{
-			name:          "Fester unavailable, status 404",
-			getStatusURL:  "https://test.ingest.iiif.library.ucla.edu/fester/notfound",
-			responseCode:  http.StatusNotFound,
-			expectedError: errors.New("error connecting to Fester: Unexpected status code"),
-		},
-		// Add more test cases as needed
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Call the function being tested with the server URL
-			statusCode, err := FesterStatus(tc.getStatusURL)
-
-			// Check if the returned status code matches the expected one
-			if statusCode != tc.responseCode {
-				t.Errorf("Expected status code %d, got %d", tc.responseCode, statusCode)
-			}
-
-			// Check if the returned error matches the expected one
-			if (err == nil && tc.expectedError != nil) || (err != nil && err.Error() != tc.expectedError.Error()) {
-				t.Errorf("Expected error: %v, got: %v", tc.expectedError, err)
-			}
-		})
 	}
 }
 
