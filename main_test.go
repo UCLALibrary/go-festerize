@@ -40,7 +40,7 @@ func createLogger() (Logger *zap.Logger, sink *MemorySink) {
 	// Create a sink instance, and register it with zap for the "memory"
 	// protocol.
 	sink = &MemorySink{new(bytes.Buffer)}
-	zap.RegisterSink("memory", func(*url.URL) (zap.Sink, error) {
+	_ = zap.RegisterSink("memory", func(*url.URL) (zap.Sink, error) {
 		return sink, nil
 	})
 
@@ -60,8 +60,10 @@ func simulateUserInput(input string) {
 
 	reader, writer, _ := os.Pipe()
 	go func() {
-		defer writer.Close()
-		io.WriteString(writer, input)
+		defer func(writer *os.File) {
+			_ = writer.Close()
+		}(writer)
+		_, _ = io.WriteString(writer, input)
 	}()
 
 	os.Stdin = reader
@@ -81,7 +83,7 @@ func redirectStdoutToBuffer(t *testing.T) *bytes.Buffer {
 			os.Stdout = oldStdout
 		}()
 
-		io.Copy(returnedBuffer, r)
+		_, _ = io.Copy(returnedBuffer, r)
 	}()
 
 	// Restore os.Stdout when the test ends
@@ -100,14 +102,18 @@ func compareCSVs(file1, file2 string, fullCompare bool) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer f1.Close()
+	defer func(f1 *os.File) {
+		_ = f1.Close()
+	}(f1)
 
 	// Open the second CSV file
 	f2, err := os.Open(file2)
 	if err != nil {
 		return false, err
 	}
-	defer f2.Close()
+	defer func(f2 *os.File) {
+		_ = f2.Close()
+	}(f2)
 
 	// Create CSV readers for both files
 	reader1 := csv.NewReader(f1)
@@ -231,7 +237,9 @@ func TestCreateOutputDir(t *testing.T) {
 		err := CreateOutputDir()
 
 		// Clean up the created directory
-		defer os.RemoveAll(tc.out)
+		defer func(path string) {
+			_ = os.RemoveAll(path)
+		}(tc.out)
 
 		// Check the result against the expected error
 		if (err != nil && tc.expectedError == nil) || (err == nil && tc.expectedError != nil) || (err != nil && err.Error() != tc.expectedError.Error()) {
@@ -317,10 +325,14 @@ func TestUploadCSV(t *testing.T) {
 					fmt.Println("Error creating temporary directory:", err)
 					return
 				}
-				defer os.RemoveAll(tempDir) // Clean up the temporary directory when done
+				defer func(path string) {
+					_ = os.RemoveAll(path)
+				}(tempDir) // Clean up the temporary directory when done
 				festerizedPath := filepath.Join(tempDir, tc.fileName)
 				file, _ := os.Create(festerizedPath)
-				defer file.Close()
+				defer func(file *os.File) {
+					_ = file.Close()
+				}(file)
 
 				_, _ = file.Write(responseBody)
 				filePath = testDirFester + tc.fileName
@@ -405,10 +417,14 @@ func TestThumbnailCSV(t *testing.T) {
 					fmt.Println("Error creating temporary directory:", err)
 					return
 				}
-				defer os.RemoveAll(tempDir) // Clean up the temporary directory when done
+				defer func(path string) {
+					_ = os.RemoveAll(path)
+				}(tempDir) // Clean up the temporary directory when done
 				thumbedPath := filepath.Join(tempDir, tc.fileName)
 				file, _ := os.Create(thumbedPath)
-				defer file.Close()
+				defer func(file *os.File) {
+					_ = file.Close()
+				}(file)
 
 				_, _ = file.Write(responseBody)
 				filePath = testDirThumbed + tc.fileName
@@ -433,21 +449,25 @@ func TestMainValid(t *testing.T) {
 
 	// Create a logger instance using the registered sink.
 	logger, sink := createLogger()
-	defer logger.Sync()
+	defer func(logger *zap.Logger) {
+		_ = logger.Sync()
+	}(logger)
 
 	Logger = logger
 
 	testCSV := "/ballin.csv"
 	os.Args = []string{"cmd", "--iiif-api-version=2", "--out=" + TestOutputDir, "--loglevel=INFO", TestDirUnFester + testCSV}
-	defer os.RemoveAll(TestOutputDir)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(TestOutputDir)
 	simulateUserInput("yes")
 	main()
 
 	// Assert sink contents
 	output := sink.String()
 	// Verifies that file was uploaded successfully through the logger
-	if !strings.Contains(output, `File was uploaded to Fester succesfully`) {
-		t.Error("File should have been uploaded to Fester succesfully but an error occured")
+	if !strings.Contains(output, `File was uploaded to Fester successfully`) {
+		t.Errorf("File should have been uploaded to Fester successfully but an error occurred: %v", output)
 	}
 
 	match, err := compareCSVs(TestOutputDir+"output"+testCSV, TestDirFester+testCSV, true)
@@ -469,13 +489,17 @@ func TestMainInvalidCSV(t *testing.T) {
 
 	// Create a logger instance using the registered sink.
 	logger, sink := createLogger()
-	defer logger.Sync()
+	defer func(logger *zap.Logger) {
+		_ = logger.Sync()
+	}(logger)
 
 	Logger = logger
 
 	testCSV := "/random.csv"
 	os.Args = []string{"cmd", "--iiif-api-version=2", "--out=" + TestOutputDir, "--loglevel=INFO", testCSV}
-	defer os.RemoveAll(TestOutputDir)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(TestOutputDir)
 	simulateUserInput("yes")
 
 	main()
@@ -493,14 +517,18 @@ func TestInvalidFesterResponse(t *testing.T) {
 
 	// Create a logger instance using the registered sink.
 	logger, sink := createLogger()
-	defer logger.Sync()
+	defer func(logger *zap.Logger) {
+		_ = logger.Sync()
+	}(logger)
 
 	Logger = logger
 
 	festerizeVersion = "0.0.1"
 	testCSV := "/ballin.csv"
 	os.Args = []string{"cmd", "--iiif-api-version=2", "--out=" + TestOutputDir, "--loglevel=INFO", TestDirUnFester + testCSV}
-	defer os.RemoveAll(TestOutputDir)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(TestOutputDir)
 	simulateUserInput("yes")
 	main()
 
