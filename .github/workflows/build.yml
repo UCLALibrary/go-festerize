@@ -34,3 +34,6 @@ jobs:
         ./festerize
     - name: Test with the Go CLI
       run: go test
+      env:
+        FESTERIZE_USERNAME: ${{ secrets.FESTERIZE_USERNAME }}
+        FESTERIZE_PASSWORD: ${{ secrets.FESTERIZE_PASSWORD }}
