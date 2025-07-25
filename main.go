@@ -373,17 +373,17 @@ func main() {
 			}
 		} else if strings.EqualFold(filepath.Ext(filename), ".csv") {
 			var uploadUrl string
-			if (thumbnail) {
+			if thumbnail {
 				uploadUrl = postThumbUrl
 			} else {
 				uploadUrl = postCSVUrl
 			}
 			Logger.Info("Uploading file to Fester",
 				zap.String("filename", filename),
-				zap.String("post URL", postCSVUrl))
-			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
+				zap.String("upload URL", uploadUrl))
+			response, body, err := uploadCSV(absPath, uploadUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if err == nil && response.StatusCode == 201 {
-				Logger.Info("File was uploaded to Fester succesfully",
+				Logger.Info("File was uploaded to Fester successfully",
 					zap.String("filename", filename),
 				)
 
@@ -403,7 +403,7 @@ func main() {
 					_ = file.Close()
 				}(file)
 
-				_, err = file.Write(responseBody)
+				_, err = file.Write(body)
 				if err != nil {
 					Logger.Error("Error writing to file", zap.Error(err))
 					fmt.Printf("There was an error writing to %s\n", filename)
@@ -429,7 +429,7 @@ func main() {
 					fmt.Printf("Check log. There was an error while attempting to upload: %s\n", filename)
 				}
 
-				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(responseBody)))
+				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 				if err != nil {
 					Logger.Error("Failed to parse error HTML",
 						zap.Error(err))

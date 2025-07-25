@@ -297,7 +297,7 @@ func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 	}
 
 	// Create a copy of the response body
-	responseBody, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -305,7 +305,7 @@ func uploadCSV(filePath, postURL, iiifAPIVersion, iiifHost string,
 		_ = Body.Close()
 	}(response.Body)
 
-	return response, responseBody, nil
+	return response, body, nil
 }
 
 // init initiates flags for command line arguments.
@@ -382,11 +382,11 @@ func main() {
 				zap.String("filename", filename),
 <<<<<<< HEAD
 				zap.String("post URL", uploadUrl))
-			response, responseBody, err := uploadCSV(absPath, uploadUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
+			response, body, err := uploadCSV(absPath, uploadUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if response.StatusCode == 201 || response.StatusCode == 200 {
 =======
 				zap.String("post URL", postCSVUrl))
-			response, responseBody, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
+			response, body, err := uploadCSV(absPath, postCSVUrl, iiifApiVersion, iiifhost, metadata, requestHeaders)
 			if err == nil && response.StatusCode == 201 {
 >>>>>>> 7db0d2a ([SERV-1316] Add Basic Auth)
 				Logger.Info("File was uploaded to Fester succesfully",
@@ -409,7 +409,7 @@ func main() {
 					_ = file.Close()
 				}(file)
 
-				_, err = file.Write(responseBody)
+				_, err = file.Write(body)
 				if err != nil {
 					Logger.Error("Error writing to file", zap.Error(err))
 					fmt.Printf("There was an error writing to %s\n", filename)
@@ -435,7 +435,7 @@ func main() {
 					fmt.Printf("Check log. There was an error while attempting to upload: %s\n", filename)
 				}
 
-				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(responseBody)))
+				doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 				if err != nil {
 					Logger.Error("Failed to parse error HTML",
 						zap.Error(err))
