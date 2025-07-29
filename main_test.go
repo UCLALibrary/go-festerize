@@ -273,7 +273,7 @@ func TestUploadCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 201,
 		},
@@ -284,7 +284,7 @@ func TestUploadCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 201,
 		},
@@ -295,7 +295,7 @@ func TestUploadCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 201,
 		},
@@ -306,7 +306,7 @@ func TestUploadCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 201,
 		},
@@ -376,7 +376,7 @@ func TestThumbnailCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 200,
 		},
@@ -387,7 +387,7 @@ func TestThumbnailCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 200,
 		},
@@ -398,7 +398,7 @@ func TestThumbnailCSV(t *testing.T) {
 			iiifHost:       "",
 			metadataUpdate: false,
 			headers: map[string]string{
-				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.4.2")},
+				"User-Agent": fmt.Sprintf("%s/%s", "Festerize", "0.5.0")},
 			expectedError: nil,
 			expStatusCode: 200,
 		},
