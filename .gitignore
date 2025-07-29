@@ -27,6 +27,9 @@ logs.log
 # Runnable binary as specificed by README
 festerize 
 
+# A config file for festerize
+.env
+
 # Output directory for results 
 /output
 
