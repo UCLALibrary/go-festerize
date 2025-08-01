@@ -103,7 +103,7 @@ var strictMode bool
 var loglevel string
 var src []string
 var Logger = logger()
-var festerizeVersion = "0.4.2"
+var festerizeVersion = "0.5.0"
 var logFile = "logs.log"
 
 // Sets up Cobra command line.
