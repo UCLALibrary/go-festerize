@@ -1,6 +1,6 @@
 module github.com/UCLALibrary/festerize-go
 
-go 1.25.8
+go 1.27.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.12.0
